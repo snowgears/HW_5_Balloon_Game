@@ -22,43 +22,31 @@
 #define BALLOON         5
 #define CAT             6
 #define LASER           7
+#define NO_PIECE        8
 
 
 ////////////////////////
 //  Type Definitions  //
 ////////////////////////
 
-typedef int gameboard[BOARD_SIZE][BOARD_SIZE];
-
 typedef struct{
+    int type;
     int x;
     int y;
     int direction;
-}Balloon;
+}GamePiece;
 
-typedef struct{
-    int x;
-    int y;
-    Balloon *closestBalloon;
-}Cat;
-
-typedef struct{
-    int x;
-    int y;
-    int direction;
-}Blaster;
-
-typedef struct{
-    int x;
-    int y;
-    int direction;
-}Laser;
+typedef GamePiece *gameboard[BOARD_SIZE][BOARD_SIZE];
 
 
 ///////////////////////
 //     Functions     //
 ///////////////////////
 
-Blaster *CreateBlaster(int side);
+GamePiece *CreateGamePiece(int type, int x, int y, int direction, gameboard *pGameboard);
+
+GamePiece *SetGamePiece(int type, int x, int y, int direction, gameboard *pGameboard);
 
 int PrintGameboard(gameboard *pGameboard);
+
+int RemoveGameboard(gameboard *pGameboard);

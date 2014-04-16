@@ -33,15 +33,23 @@ void clearscreen(){
 int main() {
 
     gameboard *pGameboard;
-    pGameboard = calloc(BOARD_SIZE * BOARD_SIZE, sizeof(char));
+    pGameboard = malloc(BOARD_SIZE * BOARD_SIZE * sizeof(GamePiece));
     
-    CreateBlaster(UP);
-    CreateBlaster(DOWN);
-    CreateBlaster(LEFT);
-    CreateBlaster(RIGHT);
+    for(int x=0; x<BOARD_SIZE; x++){
+        for(int y=0; y<BOARD_SIZE; y++){
+            CreateGamePiece(NO_PIECE, x, y, DOWN, pGameboard);
+        }
+    }
+    
+    //make the 4 blasters
+    GamePiece *topBlaster = SetGamePiece(BLASTER, BOARD_SIZE/2, 0, DOWN, pGameboard);
+    GamePiece *bottomBlaster = SetGamePiece(BLASTER, BOARD_SIZE/2, BOARD_SIZE-1, UP, pGameboard);
+    GamePiece *leftBlaster = SetGamePiece(BLASTER, 0, BOARD_SIZE/2, RIGHT, pGameboard);
+    GamePiece *rightBlaster = SetGamePiece(BLASTER, BOARD_SIZE-1, BOARD_SIZE/2, RIGHT, pGameboard);
+
     
     PrintGameboard(pGameboard);
     
     
-    free(pGameboard);
+    RemoveGameboard(pGameboard);
 }
