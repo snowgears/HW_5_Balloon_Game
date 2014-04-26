@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "balloon.h"
+#include <time.h>
 
 
 //inline void clearscreen(){
@@ -34,9 +35,11 @@ void clearscreen(){
 
 int main() {
 
+    srand(time(NULL));
+    
     printf("This is a 2D shooter game. You have 4 blasters, each on its respective edge of the board.\n");
     printf("Your goal is to shoot as many balloons (Q) as you can.\n");
-    printf("Cats (M) will try to get to the balloons before you do. If a cat touches a balloon, they both dissapear.\n");
+    printf("Cats (M) will try to get to the balloons before you do. If a cat touches a balloon, they both disappear.\n");
     printf("Once you shoot a cat, the game is over.\n");
     printf("\n");
     printf("CONTROLS:\n");
@@ -48,29 +51,22 @@ int main() {
     printf("a,w,s,d - move selected blaster in a direction.\n");
     printf("SPACE_BAR - shoot from selected blaster.\n");
     printf("\n");
-    printf("THE GAME WILL START WHEN YOU PRESS ENTER.\n");
+    printf("THE GAME WILL START WHEN YOU PRESS ENTER twice.\n");
     printf("\n");
     
     
     gameboard *pGameboard = SetupGameboard();
-    
-//    GamePiece *catPiece = (*pGameboard)[6][3];
-//    ChangeGamePiece(catPiece, CAT, UP);
-    GamePiece *balloonPiece = (*pGameboard)[13][7];
-    ChangeGamePiece(balloonPiece, BALLOON, UP, FALSE);
-    GamePiece *balloonPiece2 = (*pGameboard)[1][7];
-    ChangeGamePiece(balloonPiece2, BALLOON, DOWN, FALSE);
 
     PrintGameboard(pGameboard);
     
+    int playerScore = 0;
     int selectedBlaster = UP;
     int c = getchar();
     GamePiece *pBlaster = GetBlaster(selectedBlaster, pGameboard);
     
     //user pressed enter
     if(c == '\n'){
-        printf("GAME START.\n");
-        for(;;){
+        while(0 == 0){
             c = getchar();
             switch (c) {
                 case 'i':
@@ -109,10 +105,22 @@ int main() {
                     break;
             }
             
-            IterateGameboard(pGameboard);
+            int tempScore = IterateGameboard(pGameboard);
+            if(tempScore == -1)
+                break;
+            playerScore += tempScore;
             clearscreen();
+            
+            int placeChance = rand_mid(0, 10);
+            if(placeChance > 5){
+                PlacePiecesRandomlyAtEdges(pGameboard);
+            }
+            
             PrintGameboard(pGameboard);
         }
+        
+        printf("GAME OVER!\n");
+        printf("You were able to shoot %d balloons before you killed a cat!\n", playerScore);
     }
 
     RemoveGameboard(pGameboard);

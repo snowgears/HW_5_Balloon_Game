@@ -34,6 +34,23 @@ int ChangeGamePiece(GamePiece *pGamePiece, int type, int direction, int moveInPr
     return 0;
 }
 
+
+/////////////////////////////////////////////////////////////////////
+//  Function:                                                      //
+//            Calculates a random number in a range                //
+//  Parameters:                                                    //
+//            Lower end of range (low)                             //
+//            Upper end of range (high)                            //
+//  Returns:                                                       //
+//            The random number that was calculated                //
+//                                                                 //
+/////////////////////////////////////////////////////////////////////
+
+int rand_mid(int low, int high) {
+    return low+rand()%(high-low+1);
+}
+
+
 /////////////////////////////////////////////////////////////////////
 //  Function:                                                      //
 //            Prints the gameboard out to the console              //
@@ -279,7 +296,8 @@ int GetOppositeDirection(int direction){
 //            Direction to move the piece in (direction)           //
 //            Pointer to the gameboard (pGameboard)                //
 //  Returns:                                                       //
-//            0: Success                                           //
+//            0+: Amount to increment score by                     //
+//            -1: A laser piece hit a cat piece (end game)         //
 //                                                                 //
 /////////////////////////////////////////////////////////////////////
 
@@ -288,6 +306,8 @@ int MoveGamePiece(GamePiece *pGamePiece, int direction, gameboard *pGameboard){
     int y = pGamePiece->y;
     int newX = x;
     int newY = y;
+    
+    int scoreToAdd = 0;
     
     if(pGamePiece->type != BLASTER){
         if(pGamePiece->type == NO_PIECE || pGamePiece->moveInProgress == TRUE)
@@ -320,9 +340,16 @@ int MoveGamePiece(GamePiece *pGamePiece, int direction, gameboard *pGameboard){
         }
         //laser hit another game piece
         else if(pGamePiece->type == LASER){
+           
+            if(pNewLocPiece->type == CAT){
+                ChangeGamePiece(pGamePiece, NO_PIECE, DOWN, FALSE);
+                ChangeGamePiece(pNewLocPiece, NO_PIECE, DOWN, FALSE);
+                return -1;
+            }
             ChangeGamePiece(pGamePiece, NO_PIECE, DOWN, FALSE);
             ChangeGamePiece(pNewLocPiece, NO_PIECE, DOWN, FALSE);
-            //TODO could increcement score here if you decide to do that
+            
+            scoreToAdd++;
         }
         //two balloons run into each other
         else if(pNewLocPiece->type == BALLOON && pGamePiece->type == BALLOON){
@@ -337,13 +364,62 @@ int MoveGamePiece(GamePiece *pGamePiece, int direction, gameboard *pGameboard){
             ChangeGamePiece(pGamePiece, NO_PIECE, DOWN, FALSE);
     }
 
-    return 0;
+    return scoreToAdd;
 }
 
 
 /////////////////////////////////////////////////////////////////////
 //  Function:                                                      //
-//            Iterate all elements on the gameboard                //
+//            Places a game piece in a random open spot            //
+//            on a random edge of the gameboard                    //
+//  Parameters:                                                    //
+//            Type of piece to place (type)                        //
+//            Pointer to the gameboard (pGameboard)                //
+//  Returns:                                                       //
+//            0: Success                                           //
+//                                                                 //
+/////////////////////////////////////////////////////////////////////
+
+int PlacePieceOnRandomEdge(int type, gameboard *pGameboard){
+    int placeX;
+    int placeY;
+    
+    int edge = rand_mid(UP, RIGHT);
+    int spot = rand_mid(1, BOARD_SIZE-2);
+    
+    if(edge == UP){
+        placeX = 1;
+        placeY = spot;
+    }
+    else if(edge == DOWN){
+        placeX = BOARD_SIZE-2;
+        placeY = spot;
+    }
+    else if(edge == LEFT){
+        placeX = spot;
+        placeY = 1;
+    }
+    else{ //edge == RIGHT
+        placeX = spot;
+        placeY = BOARD_SIZE-2;
+    }
+    
+    GamePiece *pieceToPlace = (*pGameboard)[placeX][placeY];
+    
+    if (pieceToPlace->type != NO_PIECE){
+        return PlacePieceOnRandomEdge(type, pGameboard);
+    }
+    
+    int direction = GetOppositeDirection(edge);
+    
+    ChangeGamePiece(pieceToPlace, type, direction, FALSE);
+    
+    return 0;
+}
+
+/////////////////////////////////////////////////////////////////////
+//  Function:                                                      //
+//            Places game pieces randomly on the gameboard edges   //
 //  Parameters:                                                    //
 //            Pointer to the gameboard (pGameboard)                //
 //  Returns:                                                       //
@@ -351,11 +427,38 @@ int MoveGamePiece(GamePiece *pGamePiece, int direction, gameboard *pGameboard){
 //                                                                 //
 /////////////////////////////////////////////////////////////////////
 
-//int PlaceBalloonsRandomlyAtEdges(gameboard *pGameboard){
-//    int x;
-//    int y;
-//    
-//}
+int PlacePiecesRandomlyAtEdges(gameboard *pGameboard){
+
+    int catsToPlace = 1;
+    int balloonsToPlace = 2;
+    
+    int extraCatChance = rand_mid(0, 10);
+    if(extraCatChance > 6)
+        catsToPlace++;
+    
+    int extraBalloonChance = rand_mid(0, 10);
+    if(extraBalloonChance > 4)
+        balloonsToPlace++;
+    
+    
+    //TODO place all cats and balloons in random spots around edges
+    //Only place in spots with NO_PIECE
+    
+    while (balloonsToPlace > 0 || catsToPlace > 0){
+
+        if(balloonsToPlace > 0){
+            balloonsToPlace--;
+            PlacePieceOnRandomEdge(BALLOON, pGameboard);
+        }
+        if(catsToPlace > 0){
+            catsToPlace--;
+            PlacePieceOnRandomEdge(CAT, pGameboard);
+        }
+        
+    }
+    
+    return 0;
+}
 
 /////////////////////////////////////////////////////////////////////
 //  Function:                                                      //
@@ -363,13 +466,17 @@ int MoveGamePiece(GamePiece *pGamePiece, int direction, gameboard *pGameboard){
 //  Parameters:                                                    //
 //            Pointer to the gameboard (pGameboard)                //
 //  Returns:                                                       //
-//            0: Success                                           //
+//            0+: Amount to increment score by, keep game going    //
+//            -1: A cat was hit by a laser, end game               //
 //                                                                 //
 /////////////////////////////////////////////////////////////////////
 
 int IterateGameboard(gameboard *pGameboard){
     int x;
     int y;
+    int endGame;
+    
+    int scoreToAdd = 0;
     
     //iterate through positively for UP and LEFT directions to avoid override
     for (x=1; x < BOARD_SIZE-1; x++){
@@ -381,7 +488,11 @@ int IterateGameboard(gameboard *pGameboard){
                     StepTowardNearestBalloon(gp, pGameboard);
                 }
                 if(gp->direction == LEFT || gp->direction == UP){
-                    MoveGamePiece(gp, gp->direction, pGameboard);
+                    endGame = MoveGamePiece(gp, gp->direction, pGameboard);
+                    if(endGame == -1)
+                        return -1;
+                    else
+                        scoreToAdd+=endGame;
                 }
             }
         }
@@ -397,21 +508,25 @@ int IterateGameboard(gameboard *pGameboard){
                     StepTowardNearestBalloon(gp, pGameboard);
                 }
                 if(gp->direction == RIGHT || gp->direction == DOWN){
-                    MoveGamePiece(gp, gp->direction, pGameboard);
+                    endGame = MoveGamePiece(gp, gp->direction, pGameboard);
+                    if(endGame == -1)
+                        return -1;
+                    else
+                        scoreToAdd+=endGame;
                 }
             }
         }
     }
     
     //now change all pieces moveInProgress to false for next iteration
-    for (x=BOARD_SIZE-2; x > 1; x--){
-        for (y=BOARD_SIZE-2; y > 1; y--){
+    for (x=BOARD_SIZE-2; x >= 1; x--){
+        for (y=BOARD_SIZE-2; y >= 1; y--){
             GamePiece *gp = (*pGameboard)[x][y];
             gp->moveInProgress = FALSE;
         }
     }
 
-    return 0;
+    return scoreToAdd;
 }
 
 /////////////////////////////////////////////////////////////////////

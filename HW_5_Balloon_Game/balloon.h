@@ -66,3 +66,7 @@ gameboard *SetupGameboard(void);
 GamePiece *GetBlaster(int direction, gameboard *pGameboard);
 
 int ShootLaser(GamePiece *pBlaster, gameboard *pGameboard);
+
+int rand_mid(int low, int high);
+
+int PlacePiecesRandomlyAtEdges(gameboard *pGameboard);
